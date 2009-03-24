@@ -1,0 +1,8 @@
+.document
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+lib/gmail_contacts.rb
+sample/authsub.rb
+test/test_gmail_contacts.rb
