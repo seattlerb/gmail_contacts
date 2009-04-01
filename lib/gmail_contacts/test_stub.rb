@@ -1,7 +1,8 @@
 require 'gmail_contacts'
 
 ##
-# Extension that provides a stub for testing GmailContacts
+# Handy data files and GData modifications that allow GmailContacts to be
+# more easily tested
 #
 # To setup:
 #
@@ -10,82 +11,15 @@ require 'gmail_contacts'
 #   
 #   class TestMyClass < Test::Unit::TestCase
 #     def test_something
-#       gc = GmailContacts.new 'token'
-#       api = gc.contact_api
-#       api.stub_reset
-#   
-#       api.stub_data << GmailContacts::TestStub::CONTACTS
-#       api.stub_data << GmailContacts::TestStub::CONTACTS2
+#       GmailContacts.stub
 #   
 #       # ... your code using gc
 #   
-#       assert_equal 3, gc.contacts.length
-#       # ...
-#       assert_equal 2, api.stub_urls.length
-#       # ...
 #     end
 #   end
-
-class GData::Client::Contacts
-
-  ##
-  # Accessor for data the stub will return
-
-  attr_accessor :stub_data
-
-  ##
-  # Accessor for the stub AuthSub token
-
-  attr_accessor :stub_token
-
-  ##
-  # Accessor for URLs the stub accessed
-
-  attr_accessor :stub_urls
-
-  ##
-  # Sets the authsub token to +token+, but does no HTTP requests
-
-  def authsub_token=(token)
-    @stub_token = token
-    auth_handler = Object.new
-    def auth_handler.upgrade() @upgraded = true end
-    def auth_handler.upgraded?() @upgraded end
-    def auth_handler.revoke() @revoked = true end
-    def auth_handler.revoked?() @revoked end
-    self.auth_handler = auth_handler
-  end
-
-  ##
-  # Fetches +url+, records in in stub_urls, and returns data if there's still
-  # data in stub_data, or raises an exception
-
-  def get(url)
-    @stub_urls << url
-    raise 'stub data empty' if @stub_data.empty?
-
-    data = @stub_data.shift
-    
-    return data.call if Proc === data
-
-    res = Object.new
-    def res.body() @data end
-    res.instance_variable_set :@data, data
-    res
-  end
-
-  ##
-  # Resets the stub to empty
-
-  def stub_reset
-    @stub_urls = []
-    @stub_data = []
-  end
-
-end
-
-##
-# Handy data files for GmailContacts to consume when testing
+#
+# If you set the authsub token to 'recycled_authsub_token', the test stub will
+# raise a GData::Client::AuthorizationError.
 
 class GmailContacts::TestStub
 
@@ -125,21 +59,21 @@ class GmailContacts::TestStub
     <gd:email rel="http://schemas.google.com/g/2005#other" address="sean@example.com" primary="true"/>
   </entry>
   <entry gd:etag="&quot;QXk4fjVSLyp7ImA9WxVUGUwDRgE.&quot;">
-    <id>http://www.google.com/m8/feeds/contacts/eric.hodel%40gmail.com/base/18</id>
+    <id>http://www.google.com/m8/feeds/contacts/eric%40example.com/base/18</id>
     <updated>2009-03-24T18:25:50.736Z</updated>
     <app:edited xmlns:app="http://www.w3.org/2007/app">2009-03-24T18:25:50.736Z</app:edited>
     <category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/contact/2008#contact"/>
     <title>Eric</title>
-    <link rel="http://schemas.google.com/contacts/2008/rel#photo" type="image/*" href="http://www.google.com/m8/feeds/photos/media/eric.hodel%40gmail.com/18" gd:etag="&quot;UD9rbkUqSip7ImBkJkcZdVBoHxkeNFMKV1E.&quot;"/>
-    <link rel="self" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric.hodel%40gmail.com/full/18"/>
-    <link rel="edit" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric.hodel%40gmail.com/full/18"/>
+    <link rel="http://schemas.google.com/contacts/2008/rel#photo" type="image/*" href="http://www.google.com/m8/feeds/photos/media/eric%40example.com/18" gd:etag="&quot;UD9rbkUqSip7ImBkJkcZdVBoHxkeNFMKV1E.&quot;"/>
+    <link rel="self" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric%40example.com/full/18"/>
+    <link rel="edit" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric%40example.com/full/18"/>
     <gd:email rel="http://schemas.google.com/g/2005#other" address="eric@example.com" primary="true"/>
     <gd:email rel="http://schemas.google.com/g/2005#other" address="eric@example.net"/>
     <gd:im address="example" protocol="http://schemas.google.com/g/2005#AIM" rel="http://schemas.google.com/g/2005#other"/>
     <gd:phoneNumber rel="http://schemas.google.com/g/2005#mobile">999 555 1212</gd:phoneNumber>
     <gd:postalAddress rel="http://schemas.google.com/g/2005#home">123 Any Street
 AnyTown, ZZ 99999</gd:postalAddress>
-    <gContact:groupMembershipInfo deleted="false" href="http://www.google.com/m8/feeds/groups/eric.hodel%40gmail.com/base/6"/>
+    <gContact:groupMembershipInfo deleted="false" href="http://www.google.com/m8/feeds/groups/eric%40example.com/base/6"/>
   </entry>
 </feed>
   ATOM
@@ -182,6 +116,94 @@ AnyTown, ZZ 99999</gd:postalAddress>
   </entry>
 </feed>
   ATOM
+
+end
+
+# :stopdoc:
+class GmailContacts
+
+  @stubbed = false
+
+  def self.stub
+    return if @stubbed
+    @stubbed = true
+
+    alias old_get_token get_token
+
+    def get_token
+      if @authsub_token == 'recycled_authsub_token' then
+        raise GData::Client::AuthorizationError, 'recycled token'
+      end
+      old_get_token
+      @contact_api.stub_reset
+      @contact_api.stub_data << GmailContacts::TestStub::CONTACTS
+      @contact_api.stub_data << GmailContacts::TestStub::CONTACTS2
+    end
+  end
+
+end
+# :startdoc:
+
+##
+# Extension that provides a stub for testing GmailContacts
+#
+# See GmailContacts::TestStub for usage details
+
+class GData::Client::Contacts
+
+  ##
+  # Accessor for data the stub will return
+
+  attr_accessor :stub_data
+
+  ##
+  # Accessor for the stub AuthSub token
+
+  attr_accessor :stub_token
+
+  ##
+  # Accessor for URLs the stub accessed
+
+  attr_accessor :stub_urls
+
+  ##
+  # Sets the authsub token to +token+, but does no HTTP requests
+
+  def authsub_token=(token)
+    @stub_token = token
+    auth_handler = Object.new
+    def auth_handler.upgrade() @upgraded = true end
+    def auth_handler.upgraded?() @upgraded end
+    def auth_handler.revoke() @revoked = true end
+    def auth_handler.revoked?() @revoked end
+    self.auth_handler = auth_handler
+  end
+
+  ##
+  # Fetches +url+, records in in stub_urls, and returns data if there's still
+  # data in stub_data, or raises an exception
+
+  def get(url)
+    @stub_urls << url
+    raise 'stub data empty' if @stub_data.empty?
+
+    data = @stub_data.shift
+
+    return data.call if Proc === data
+
+    res = Object.new
+    def res.body() @data end
+    res.instance_variable_set :@data, data
+    res
+  end
+
+  ##
+  # Resets the stub to empty
+
+  def stub_reset
+    @stub_urls = []
+    @stub_data = []
+  end
 
 end
 

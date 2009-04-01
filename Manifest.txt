@@ -4,5 +4,6 @@ Manifest.txt
 README.txt
 Rakefile
 lib/gmail_contacts.rb
+lib/gmail_contacts/test_stub.rb
 sample/authsub.rb
 test/test_gmail_contacts.rb
