@@ -5,6 +5,8 @@ require 'nokogiri'
 ##
 # GmailContacts sits atop GData and turns the contact feed into
 # GmailContacts::Contact objects for friendly consumption.
+#
+# GmailContacts was sponsored by AT&T Interactive.
 
 class GmailContacts
 
