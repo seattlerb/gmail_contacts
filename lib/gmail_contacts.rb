@@ -10,7 +10,7 @@ require 'nokogiri'
 
 class GmailContacts
 
-  VERSION = '1.0'
+  VERSION = '1.0.1'
 
   Contact = Struct.new :title, :emails, :ims, :phone_numbers, :addresses
 
