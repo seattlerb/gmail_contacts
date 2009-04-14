@@ -182,7 +182,9 @@ class GmailContacts
     xml.xpath('//xmlns:feed/xmlns:entry').each do |entry|
       title = entry.xpath('.//xmlns:title').first.text
       emails = []
-      emails << entry.xpath('.//gd:email[@primary]').first['address']
+      primary = entry.xpath('.//gd:email[@primary]')
+      next unless primary.first
+      emails << primary.first['address']
       alternates = entry.xpath('.//gd:email[not(@primary)]')
 
       emails.push(*alternates.map { |e| e['address'] })

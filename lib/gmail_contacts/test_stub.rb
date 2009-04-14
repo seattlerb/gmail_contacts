@@ -44,7 +44,7 @@ class GmailContacts::TestStub
     <email>eric@example.com</email>
   </author>
   <generator version="1.0" uri="http://www.google.com/m8/feeds">Contacts</generator>
-  <openSearch:totalResults>3</openSearch:totalResults>
+  <openSearch:totalResults>4</openSearch:totalResults>
   <openSearch:startIndex>1</openSearch:startIndex>
   <openSearch:itemsPerPage>2</openSearch:itemsPerPage>
   <entry gd:etag="&quot;SHg-cTVSLip7ImA9WB5WGUUIQgc.&quot;">
@@ -99,7 +99,7 @@ AnyTown, ZZ 99999</gd:postalAddress>
     <email>eric@example.com</email>
   </author>
   <generator version="1.0" uri="http://www.google.com/m8/feeds">Contacts</generator>
-  <openSearch:totalResults>3</openSearch:totalResults>
+  <openSearch:totalResults>4</openSearch:totalResults>
   <openSearch:startIndex>3</openSearch:startIndex>
   <openSearch:itemsPerPage>2</openSearch:itemsPerPage>
   <entry gd:etag="&quot;QXk_fTVSLyp7ImA9WxVUFUQITgA.&quot;">
@@ -112,6 +112,17 @@ AnyTown, ZZ 99999</gd:postalAddress>
     <link rel="self" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric%40example.com/full/5834fb5d0b47bfd7"/>
     <link rel="edit" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric%40example.com/full/5834fb5d0b47bfd7"/>
     <gd:email rel="http://schemas.google.com/g/2005#other" address="coby@example.com" primary="true"/>
+    <gContact:groupMembershipInfo deleted="false" href="http://www.google.com/m8/feeds/groups/eric%40example.com/base/6"/>
+  </entry>
+  <entry gd:etag="&quot;QXk_fTVSLyp7ImA9WxVUFUQITgAz&quot;">
+    <id>http://www.google.com/m8/feeds/contacts/eric%40example.com/base/5834fb5d0b47bfdb</id>
+    <updated>2009-03-20T23:49:00.745Z</updated>
+    <app:edited xmlns:app="http://www.w3.org/2007/app">2009-03-20T23:49:00.745Z</app:edited>
+    <category scheme="http://schemas.google.com/g/2005#kind" term="http://schemas.google.com/contact/2008#contact"/>
+    <title>No-email</title>
+    <link rel="http://schemas.google.com/contacts/2008/rel#photo" type="image/*" href="http://www.google.com/m8/feeds/photos/media/eric%40example.com/5834fb5d0b47bfdb" gd:etag="&quot;eRJhPnolbCp7ImBjG0U0GBtuHmVAdnsJYzMz&quot;"/>
+    <link rel="self" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric%40example.com/full/5834fb5d0b47bfdb"/>
+    <link rel="edit" type="application/atom+xml" href="http://www.google.com/m8/feeds/contacts/eric%40example.com/full/5834fb5d0b47bfdb"/>
     <gContact:groupMembershipInfo deleted="false" href="http://www.google.com/m8/feeds/groups/eric%40example.com/base/6"/>
   </entry>
 </feed>
