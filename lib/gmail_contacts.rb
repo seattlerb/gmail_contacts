@@ -10,67 +10,15 @@ require 'nokogiri'
 
 class GmailContacts
 
-  VERSION = '1.0.1'
+  VERSION = '1.1'
 
-  Contact = Struct.new :title, :emails, :ims, :phone_numbers, :addresses
+  Contact = Struct.new :title, :emails, :ims, :phone_numbers, :addresses,
+                       :photo_url
 
   ##
   # Struct containing title, emails, ims, phone_numbers and addresses
 
   class Contact
-
-    def pretty_print(q) # :nodoc:
-      q.text "#{title}"
-      q.breakable
-
-      q.group 2 do
-        q.breakable
-        q.group 2, 'emails: ' do
-          emails.each_with_index do |email, i|
-            unless i == 0 then
-              q.text ','
-              q.breakable
-            end
-
-            email += " (Primary)" if i == 0
-            q.text email
-          end
-        end
-
-        q.breakable
-        q.group 2, 'ims: ' do
-          ims.each_with_index do |(address, type), i|
-            unless i == 0 then
-              q.text ','
-              q.breakable
-            end
-
-            q.text "#{address} (#{type.sub(/.*#/, '')})"
-          end
-        end
-
-        q.breakable
-        q.group 2, 'phone numbers: ' do
-          phone_numbers.each_with_index do |(number, type), i|
-            unless i == 0 then
-              q.text ','
-              q.breakable
-            end
-
-            q.text "#{number} (#{type.sub(/.*#/, '')})"
-          end
-        end
-
-        q.breakable
-        addresses.each do |address, type|
-          q.group 2, "#{type.sub(/.*#/, '')} address:\n" do
-            address = address.split("\n").each do |line|
-              q.text "#{' ' * q.indent}#{line}\n"
-            end
-          end
-        end
-      end
-    end
 
     ##
     # Returns the user's primary email address
@@ -154,8 +102,19 @@ class GmailContacts
 
       uri = next_uri['href']
     end
+
+    yield if block_given?
   ensure
     revoke_token if token?
+  end
+
+  ##
+  # Fetches the photo data for +contact+
+
+  def fetch_photo(contact)
+    res = @contact_api.get contact.photo_url
+
+    res.body
   end
 
   ##
@@ -204,7 +163,10 @@ class GmailContacts
         addresses << [address.text, address['rel']]
       end
 
-      contact = Contact.new title, emails, ims, phones, addresses
+      photo_link = entry.xpath('.//xmlns:link[@rel="http://schemas.google.com/contacts/2008/rel#photo"]').first
+      photo_url = photo_link['href'] if photo_link
+
+      contact = Contact.new title, emails, ims, phones, addresses, photo_url
 
       @contacts << contact
     end

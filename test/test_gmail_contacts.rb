@@ -15,26 +15,8 @@ class TestGmailContacts < Test::Unit::TestCase
                                  [%w[example http://schemas.google.com/g/2005#AIM]],
                                  [%w[999\ 555\ 1212 http://schemas.google.com/g/2005#mobile]],
                                  [["123 Any Street\nAnyTown, ZZ 99999",
-                                   "http://schemas.google.com/g/2005#home"]])
-  end
-
-  def test_contact_pretty_print
-    str = ''
-    PP.pp @eric, str
-
-    expected = <<-EXPECTED
-Eric
-
-  emails: eric@example.com (Primary), eric@example.net
-  ims: example (AIM)
-  phone numbers: 999 555 1212 (mobile)
-  home address:
-    123 Any Street
-    AnyTown, ZZ 99999
-
-    EXPECTED
-
-    assert_equal expected, str
+                                   "http://schemas.google.com/g/2005#home"]],
+                                 "http://www.google.com/m8/feeds/photos/media/eric%40example.com/18")
   end
 
   def test_fetch
@@ -74,6 +56,14 @@ Eric
     assert @api.auth_handler.revoked?
   end
 
+  def test_fetch_photo
+    @api.stub_data << 'THIS IS A PHOTO!'
+
+    photo = @gc.fetch_photo @eric
+
+    assert_equal 'THIS IS A PHOTO!', photo
+  end
+
   def test_parse
     @gc.parse Nokogiri::XML(GmailContacts::TestStub::CONTACTS)
 
@@ -82,8 +72,11 @@ Eric
     assert_equal 'drbrain', @gc.author_name
     assert_equal 'eric@example.com', @gc.author_email
 
+    photo_url = 'http://www.google.com/m8/feeds/photos/media/eric%40example.com/0'
+
     expected = [
-      GmailContacts::Contact.new('Sean', %w[sean@example.com], [], [], []),
+      GmailContacts::Contact.new('Sean', %w[sean@example.com], [], [], [],
+                                 photo_url),
       @eric
     ]
 
@@ -99,10 +92,15 @@ Eric
     assert_equal 'drbrain', @gc.author_name
     assert_equal 'eric@example.com', @gc.author_email
 
+    sean_photo_url = "http://www.google.com/m8/feeds/photos/media/eric%40example.com/0"
+    coby_photo_url = "http://www.google.com/m8/feeds/photos/media/eric%40example.com/5834fb5d0b47bfd7"
+
     expected = [
-      GmailContacts::Contact.new('Sean', %w[sean@example.com], [], [], []),
+      GmailContacts::Contact.new('Sean', %w[sean@example.com], [], [], [],
+                                 sean_photo_url),
       @eric,
-      GmailContacts::Contact.new('Coby', %w[coby@example.com], [], [], []),
+      GmailContacts::Contact.new('Coby', %w[coby@example.com], [], [], [],
+                                 coby_photo_url),
     ]
 
     assert_equal expected, @gc.contacts
