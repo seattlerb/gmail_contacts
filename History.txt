@@ -1,6 +1,18 @@
-=== 1.0.0 / 2009-04-08
+=== 1.1 / 2009-04-30
+
+* 1 minor enhancement
+  * Allow for saved session tokens
+
+* 1 bug fix
+  * Fix stubs for gdata 1.1
+
+=== 1.0.1 / 2009-04-14
+
+* 1 bug fix
+  * Fix for contacts without an email address
+
+=== 1.0 / 2009-04-08
 
 * 1 major enhancement
-
   * Birthday!
 

@@ -143,7 +143,10 @@ class GmailContacts
 
     def get_token
       if @authsub_token == 'recycled_authsub_token' then
-        raise GData::Client::AuthorizationError, 'recycled token'
+        res = GData::HTTP::Response.new
+        res.status_code = 403
+        res.body = 'recycled token'
+        raise GData::Client::AuthorizationError, res
       end
       old_get_token
       @contact_api.stub_reset

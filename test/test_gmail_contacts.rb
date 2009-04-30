@@ -39,7 +39,8 @@ class TestGmailContacts < Test::Unit::TestCase
 
   def test_fetch_forbidden
     @api.stub_data << proc do
-      raise GData::Client::AuthorizationError
+      res = GData::HTTP::Response.new
+      raise GData::Client::AuthorizationError, res
     end
 
     assert_raise GData::Client::AuthorizationError do

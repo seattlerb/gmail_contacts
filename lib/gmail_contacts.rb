@@ -69,9 +69,9 @@ class GmailContacts
   # See GData::Client::Base in the gdata gem and
   # http://code.google.com/apis/accounts/docs/AuthSub.html for more details.
 
-  def initialize(authsub_token = nil)
+  def initialize(authsub_token = nil, session_token = false)
     @authsub_token = authsub_token
-    @session_token = false
+    @session_token = session_token
 
     @id = nil
     @title = nil
@@ -121,6 +121,7 @@ class GmailContacts
   # Fetches an AuthSub session token
 
   def get_token
+    return if @session_token
     @contact_api.authsub_token = @authsub_token
     @contact_api.auth_handler.upgrade
     @session_token = true
