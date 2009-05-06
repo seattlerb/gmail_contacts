@@ -188,10 +188,16 @@ class GData::Client::Contacts
     auth_handler = Object.new
     auth_handler.instance_variable_set :@revoked, nil
     auth_handler.instance_variable_set :@upgraded, nil
+    auth_handler.instance_variable_set :@token, token
     def auth_handler.revoke() @revoked = true end
     def auth_handler.revoked?() @revoked end
     def auth_handler.upgrade() @upgraded = true end
     def auth_handler.upgraded?() @upgraded end
+    def auth_handler.token()
+      [@token,
+       (@revoked ? 'revoked' : nil),
+       (@upgraded ? 'upgraded' : nil)].compact.join '-'
+    end
     self.auth_handler = auth_handler
   end
 
