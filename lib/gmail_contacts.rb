@@ -10,7 +10,7 @@ require 'nokogiri'
 
 class GmailContacts
 
-  VERSION = '1.1'
+  VERSION = '1.2'
 
   Contact = Struct.new :title, :emails, :ims, :phone_numbers, :addresses,
                        :photo_url
@@ -85,7 +85,7 @@ class GmailContacts
   ##
   # Fetches contacts from google for +email+.
 
-  def fetch(email)
+  def fetch(email, revoke = true)
     get_token
 
     uri = "http://www.google.com/m8/feeds/contacts/#{email}/full"
@@ -105,7 +105,7 @@ class GmailContacts
 
     yield if block_given?
   ensure
-    revoke_token if token?
+    revoke_token if revoke and token?
   end
 
   ##

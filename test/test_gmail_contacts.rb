@@ -1,9 +1,10 @@
-require 'test/unit'
+require 'rubygems'
+require 'minitest/autorun'
 require 'gmail_contacts'
 require 'gmail_contacts/test_stub'
 require 'pp'
 
-class TestGmailContacts < Test::Unit::TestCase
+class TestGmailContacts < MiniTest::Unit::TestCase
 
   def setup
     @gc = GmailContacts.new 'token'
@@ -43,7 +44,7 @@ class TestGmailContacts < Test::Unit::TestCase
       raise GData::Client::AuthorizationError, res
     end
 
-    assert_raise GData::Client::AuthorizationError do
+    assert_raises GData::Client::AuthorizationError do
       @gc.fetch 'notme@example.com'
     end
 
@@ -55,6 +56,24 @@ class TestGmailContacts < Test::Unit::TestCase
 
     assert @api.auth_handler.upgraded?
     assert @api.auth_handler.revoked?
+  end
+
+  def test_fetch_no_revoke
+    @api.stub_data << GmailContacts::TestStub::CONTACTS
+    @api.stub_data << GmailContacts::TestStub::CONTACTS2
+
+    @gc.fetch 'eric@example.com', false
+
+    assert_equal 3, @gc.contacts.length
+
+    assert_equal 2, @api.stub_urls.length
+    assert_equal 'http://www.google.com/m8/feeds/contacts/eric@example.com/full',
+                 @api.stub_urls.shift
+    assert_equal 'http://www.google.com/m8/feeds/contacts/eric%40example.com/full?start-index=3&max-results=2',
+                 @api.stub_urls.shift
+
+    assert @api.auth_handler.upgraded?
+    refute @api.auth_handler.revoked?
   end
 
   def test_fetch_photo
