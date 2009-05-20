@@ -1,3 +1,8 @@
+=== 1.4.1 / 2009-05-20
+
+* 1 bug fix
+  * Don't set token if we weren't given it
+
 === 1.4 / 2009-05-13
 
 * 1 minor enhancement

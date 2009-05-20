@@ -10,7 +10,7 @@ require 'nokogiri'
 
 class GmailContacts
 
-  VERSION = '1.4'
+  VERSION = '1.4.1'
 
   Contact = Struct.new :title, :emails, :ims, :phone_numbers, :addresses,
                        :photo_url
@@ -80,7 +80,7 @@ class GmailContacts
     @contacts ||= []
 
     @contact_api = GData::Client::Contacts.new
-    @contact_api.authsub_token = @authsub_token
+    @contact_api.authsub_token = @authsub_token if @authsub_token
   end
 
   ##
