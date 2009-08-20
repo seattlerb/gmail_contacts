@@ -10,7 +10,7 @@ require 'nokogiri'
 
 class GmailContacts
 
-  VERSION = '1.4.1'
+  VERSION = '1.5'
 
   Contact = Struct.new :title, :emails, :ims, :phone_numbers, :addresses,
                        :photo_url
@@ -110,10 +110,15 @@ class GmailContacts
   end
 
   ##
-  # Fetches the photo data for +contact+
+  # Fetches the photo data for +contact+ which may be a photo URL
 
   def fetch_photo(contact)
-    res = @contact_api.get contact.photo_url
+    photo_url = if String === contact then
+                  contact
+                else
+                  contact.photo_url
+                end
+    res = @contact_api.get photo_url
 
     res.body
   end

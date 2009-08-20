@@ -1,3 +1,4 @@
+.autotest
 .document
 History.txt
 Manifest.txt

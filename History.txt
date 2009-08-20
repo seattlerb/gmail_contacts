@@ -1,3 +1,8 @@
+=== 1.5 / 2009-08-20
+
+* 1 minor enhancement
+  * #fetch_photo now accepts a photo URL as well
+
 === 1.4.1 / 2009-05-20
 
 * 1 bug fix

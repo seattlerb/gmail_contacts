@@ -84,6 +84,14 @@ class TestGmailContacts < MiniTest::Unit::TestCase
     assert_equal 'THIS IS A PHOTO!', photo
   end
 
+  def test_fetch_photo_url
+    @api.stub_data << 'THIS IS A PHOTO!'
+
+    photo = @gc.fetch_photo @eric.photo_url
+
+    assert_equal 'THIS IS A PHOTO!', photo
+  end
+
   def test_parse
     @gc.parse Nokogiri::XML(GmailContacts::TestStub::CONTACTS)
 

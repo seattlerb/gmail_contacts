@@ -2,17 +2,18 @@
 
 require 'rubygems'
 require 'hoe'
-require './lib/gmail_contacts.rb'
 
-Hoe.new('gmail_contacts', GmailContacts::VERSION) do |p|
-  p.rubyforge_name = 'seattlerb' # if different than lowercase project name
-  p.developer 'Eric Hodel', 'drbrain@segment7.net'
+Hoe.plugin :seattlerb
 
-  p.testlib = :minitest
+Hoe.spec 'gmail_contacts' do
+  developer 'Eric Hodel', 'drbrain@segment7.net'
 
-  p.extra_deps << ['gdata', '~> 1.1']
-  p.extra_deps << ['nokogiri', '~> 1.2']
-  p.extra_dev_deps << ['minitest', '~> 1.3']
+  self.rubyforge_name = 'seattlerb'
+  self.testlib = :minitest
+
+  extra_deps << ['gdata', '~> 1.1']
+  extra_deps << ['nokogiri', '~> 1.2']
+  extra_dev_deps << ['minitest', '~> 1.3']
 end
 
 # vim: syntax=Ruby
