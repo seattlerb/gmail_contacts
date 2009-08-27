@@ -19,7 +19,10 @@ require 'gmail_contacts'
 #   end
 #
 # If you set the authsub token to 'recycled_authsub_token', the test stub will
-# raise a GData::Client::AuthorizationError.
+# raise a GData::Client::AuthorizationError when you call #get_token.
+#
+# If you set the authsub token to 'wrong_user_authsub_token', the test stub
+# will raise a GData::Client::AuthorizationError when you call #fetch.
 
 class GmailContacts::TestStub
 
@@ -152,6 +155,19 @@ class GmailContacts
       @contact_api.stub_reset
       @contact_api.stub_data << GmailContacts::TestStub::CONTACTS
       @contact_api.stub_data << GmailContacts::TestStub::CONTACTS2
+    end
+
+    alias old_fetch fetch
+
+    def fetch(*args)
+      if @authsub_token == 'wrong_user_authsub_token' then
+        res = GData::HTTP::Response.new
+        res.status_code = 403
+        res.body = 'wrong user'
+        raise GData::Client::AuthorizationError, res
+      end
+
+      old_fetch(*args)
     end
   end
 
