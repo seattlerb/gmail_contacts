@@ -1,7 +1,13 @@
+=== 1.7 / 2009-09-03
+
+* 1 minor enhancement
+  * ::stub now raises a GData::Client::UnknownError when #fetch_photo is given
+    a URL containing 404
+
 === 1.6 / 2009-08-27
 
 * 1 minor enhancement
-  * ::stub has a new 
+  * ::stub has a new token type 'wrong_user_authsub_token'
 
 === 1.5 / 2009-08-20
 

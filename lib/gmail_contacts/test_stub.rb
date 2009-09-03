@@ -169,6 +169,26 @@ class GmailContacts
 
       old_fetch(*args)
     end
+
+    alias old_fetch_photo fetch_photo
+
+    def fetch_photo(contact)
+      photo_url = if String === contact then
+                    contact
+                  else
+                    contact.photo_url
+                  end
+
+      if photo_url =~ /404/ then
+        res = Object.new
+        def res.status_code() 404 end
+        def res.body() 'Photo not found' end
+        raise GData::Client::UnknownError, res
+      end
+
+      old_fetch_photo contact
+    end
+
   end
 
 end
