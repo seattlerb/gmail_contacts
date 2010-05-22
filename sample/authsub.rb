@@ -7,6 +7,9 @@ webrick = WEBrick::HTTPServer.new :Port => 3000
 webrick.mount_proc '/' do |req, res|
   res.content_type = 'text/html'
 
+  ##
+  # This is the initial page, a form with an email to fetch contacts for
+
   if req.path == '/' then
     res.body = <<-BODY
 <form action="http://#{Socket.gethostname}:3000/go">
@@ -15,11 +18,19 @@ webrick.mount_proc '/' do |req, res|
 </form>
     BODY
 
+  ##
+  # This is where we redirect the user to Google for approval, click "grant"
+  # on that page.
+
   elsif req.path == '/go' then
     gmail_contacts = GmailContacts.new
-    url = gmail_contacts.contact_api.authsub_url \
-      "http://#{Socket.gethostname}:3000/return?email=#{req.query['email']}"
+    url = gmail_contacts.authsub_url \
+      "http://localhost:3000/return?email=#{req.query['email']}"
     res.set_redirect WEBrick::HTTPStatus::SeeOther, url
+
+  ##
+  # Google sends us back here, so we create a new GmailContacts with the token
+  # they gave us and fetch the contacts for the email provided to /go
 
   elsif req.path == '/return' then
     res.body = "<h1>contacts</h1>\n"
