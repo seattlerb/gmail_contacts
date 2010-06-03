@@ -11,8 +11,8 @@ Hoe.spec 'gmail_contacts' do
   self.rubyforge_name = 'seattlerb'
   self.testlib = :minitest
 
-  extra_deps << ['gdata', '~> 1.1']
-  extra_deps << ['nokogiri', '~> 1.2']
+  extra_deps << ['nokogiri', '~> 1.4']
+  extra_deps << ['net-http-persistent', '~> 1.2', '> 1.2']
   extra_dev_deps << ['minitest', '~> 1.3']
 end
 

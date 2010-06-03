@@ -1,16 +1,40 @@
-require 'rubygems'
-require 'gdata'
+require 'cgi'
+require 'net/http/persistent'
 require 'nokogiri'
 
 ##
 # GmailContacts sits atop GData and turns the contact feed into
 # GmailContacts::Contact objects for friendly consumption.
 #
+# See sample/authsub.rb for an example which uses GmailContacts.
+#
 # GmailContacts was sponsored by AT&T Interactive.
+#
+# == Upgrading from 1.x
+#
+# gmail_contacts no longer depends on gdata and performs its own AuthSub
+# handling.  Use GmailContacts#authsub_url instead of #authsub_url on
+# #contact_api.
+#
+# gmail_contacts no longer uses gdata to raise exceptions and instead raise
+# Net::HTTPServerException instead.  Rescue Net::HTTPServerException instead
+# of GData::Client::RequestError.  Net::HTTPServerException responds to
+# #response which you can use to determine what kind of error you got:
+#
+#   begin
+#     gc.fetch 'nobody@example', false
+#   rescue Net::HTTPServerException => e
+#     case e.response
+#     when Net::HTTPForbidden then
+#       puts "You are not allowed to view contacts for this user"
+#     end
+#   end
 
 class GmailContacts
 
-  VERSION = '1.7'
+  VERSION = '2.0'
+
+  class Error < RuntimeError; end
 
   Contact = Struct.new :title, :emails, :ims, :phone_numbers, :addresses,
                        :photo_url
@@ -40,9 +64,10 @@ class GmailContacts
   attr_reader :author_name
 
   ##
-  # GData::Client::Contacts object accessor for testing
+  # The current authsub token.  If you upgrade a request token to a session
+  # token the value will change.
 
-  attr_accessor :contact_api # :nodoc:
+  attr_reader :authsub_token
 
   ##
   # Contact data
@@ -63,11 +88,7 @@ class GmailContacts
 
   ##
   # Creates a new GmailContacts using +authsub_token+.  If you don't yet have
-  # an AuthSub token, call <tt>contact_api.auth_url</tt> providing your return
-  # endpoint.
-  #
-  # See GData::Client::Base in the gdata gem and
-  # http://code.google.com/apis/accounts/docs/AuthSub.html for more details.
+  # an AuthSub token, call #authsub_url.
 
   def initialize(authsub_token = nil, session_token = false)
     @authsub_token = authsub_token
@@ -79,8 +100,38 @@ class GmailContacts
     @author_name = nil
     @contacts ||= []
 
-    @contact_api = GData::Client::Contacts.new
-    @contact_api.authsub_token = @authsub_token if @authsub_token
+    @google = URI.parse 'https://www.google.com'
+    @http = Net::HTTP::Persistent.new "gmail_contacts_#{object_id}"
+    @http.debug_output = $stderr
+    @http.headers['Authorization'] = "AuthSub token=\"#{@authsub_token}\""
+  end
+
+  ##
+  # Returns a URL that will allow a user to authorize contact retrieval.
+  # Redirect the user to this URL and they will (should) approve your contact
+  # retrieval request.
+  #
+  # +next_url+ is where Google will redirect the user after they grant your
+  # request.
+  #
+  # See http://code.google.com/apis/accounts/docs/AuthSub.html for more
+  # details.
+
+  def authsub_url next_url, secure = false, session = true, domain = nil
+    query = {
+      'next'    => CGI.escape(next_url),
+      'scope'   => 'http%3A%2F%2Fwww.google.com%2Fm8%2Ffeeds%2F',
+      'secure'  => (secure  ? 1 : 0),
+      'session' => (session ? 1 : 0),
+    }
+
+    query['hd'] = CGI.escape domain if domain
+
+    query = query.map do |key, value|
+      "#{key}=#{value}"
+    end.sort.join '&'
+
+    "https://www.google.com/accounts/AuthSubRequest?#{query}"
   end
 
   ##
@@ -89,10 +140,10 @@ class GmailContacts
   def fetch(email, revoke = true)
     get_token
 
-    uri = "http://www.google.com/m8/feeds/contacts/#{email}/full"
+    uri = URI.parse "http://www.google.com/m8/feeds/contacts/#{email}/full"
 
     loop do
-      res = @contact_api.get uri
+      res = request uri
 
       xml = Nokogiri::XML res.body
 
@@ -101,7 +152,7 @@ class GmailContacts
       next_uri = xml.xpath('//xmlns:feed/xmlns:link[@rel="next"]').first
       break unless next_uri
 
-      uri = next_uri['href']
+      uri += next_uri['href']
     end
 
     yield if block_given?
@@ -118,17 +169,24 @@ class GmailContacts
                 else
                   contact.photo_url
                 end
-    res = @contact_api.get photo_url
+    response = request URI.parse photo_url
 
-    res.body
+    response.body
   end
 
   ##
-  # Fetches an AuthSub session token
+  # Fetches an AuthSub session token.  Changes the value of #authsub_token so
+  # you can store it in a database or wherever.
 
   def get_token
     return if @session_token
-    @contact_api.auth_handler.upgrade
+
+    response = request @google + '/accounts/AuthSubSessionToken'
+
+    response.body =~ /^Token=(.*)/
+
+    @authsub_token = $1
+    @http.headers['Authorization'] = "AuthSub token=\"#{@authsub_token}\""
     @session_token = true
   end
 
@@ -181,10 +239,27 @@ class GmailContacts
   end
 
   ##
-  # Revokes our AuthSub token
+  # Performs a GET for +uri+ and returns the Net::HTTPResponse.  Raises
+  # Net::HTTPError if the response wasn't a success (OK, Created, Found).
+
+  def request uri
+    response = @http.request uri
+
+    case response
+    when Net::HTTPOK, Net::HTTPCreated, Net::HTTPFound then
+      response
+    else
+      response.error!
+    end
+  end
+
+  ##
+  # Revokes our AuthSub session token
 
   def revoke_token
-    @contact_api.auth_handler.revoke
+    request @google + '/accounts/AuthSubRevokeToken'
+
+    @session_token = false
   end
 
   ##

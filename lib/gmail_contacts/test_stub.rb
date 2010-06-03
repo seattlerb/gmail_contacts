@@ -8,13 +8,13 @@ require 'gmail_contacts'
 #
 #   require 'gmail_contacts'
 #   require 'gmail_contacts/test_stub'
-#   
+#
 #   class TestMyClass < Test::Unit::TestCase
 #     def test_something
 #       GmailContacts.stub
-#   
+#
 #       # ... your code using gc
-#   
+#
 #     end
 #   end
 #
@@ -23,6 +23,15 @@ require 'gmail_contacts'
 #
 # If you set the authsub token to 'wrong_user_authsub_token', the test stub
 # will raise a GData::Client::AuthorizationError when you call #fetch.
+#
+# If you set the authsub token to 'authsub_token', #get_token will change it
+# to 'authsub_token-upgraded' to indicate it was upgraded to a session token.
+#
+# If you fetch a photo with 404 in the url, #fetch_photo will raise a
+# Net::HTTPServerException with a 404 response inside.
+#
+# #revoke_token will set the token to 'authsub_token-revoked' to indicate it
+# was revoked.
 
 class GmailContacts::TestStub
 
@@ -138,6 +147,8 @@ class GmailContacts
 
   @stubbed = false
 
+  attr_reader :http
+
   def self.stub
     return if @stubbed
     @stubbed = true
@@ -146,25 +157,23 @@ class GmailContacts
 
     def get_token
       if @authsub_token == 'recycled_authsub_token' then
-        res = GData::HTTP::Response.new
-        res.status_code = 403
-        res.body = 'recycled token'
-        raise GData::Client::AuthorizationError, res
+        Net::HTTPForbidden.new(nil, '403', 'Forbidden').error!
       end
-      old_get_token
-      @contact_api.stub_reset
-      @contact_api.stub_data << GmailContacts::TestStub::CONTACTS
-      @contact_api.stub_data << GmailContacts::TestStub::CONTACTS2
+
+      @authsub_token = 'authsub_token-upgraded' if
+        @authsub_token == 'authsub_token'
+      @session_token = true
+
+      @http.stub_reset
+      @http.stub_data << GmailContacts::TestStub::CONTACTS
+      @http.stub_data << GmailContacts::TestStub::CONTACTS2
     end
 
     alias old_fetch fetch
 
     def fetch(*args)
       if @authsub_token == 'wrong_user_authsub_token' then
-        res = GData::HTTP::Response.new
-        res.status_code = 403
-        res.body = 'wrong user'
-        raise GData::Client::AuthorizationError, res
+        Net::HTTPForbidden.new(nil, '403', 'Forbidden').error!
       end
 
       old_fetch(*args)
@@ -179,14 +188,17 @@ class GmailContacts
                     contact.photo_url
                   end
 
-      if photo_url =~ /404/ then
-        res = Object.new
-        def res.status_code() 404 end
-        def res.body() 'Photo not found' end
-        raise GData::Client::UnknownError, res
-      end
+      Net::HTTPNotFound.new(nil, '404', 'Not Found').error! if
+        photo_url =~ /404/
 
       old_fetch_photo contact
+    end
+
+    alias old_revoke_token revoke_token
+
+    def revoke_token
+      @authsub_token = 'authsub_token-revoked'
+      @session_token = false
     end
 
   end
@@ -194,12 +206,7 @@ class GmailContacts
 end
 # :startdoc:
 
-##
-# Extension that provides a stub for testing GmailContacts
-#
-# See GmailContacts::TestStub for usage details
-
-class GData::Client::Contacts
+class Net::HTTP::Persistent
 
   ##
   # Accessor for data the stub will return
@@ -207,49 +214,25 @@ class GData::Client::Contacts
   attr_accessor :stub_data
 
   ##
-  # Accessor for the stub AuthSub token
-
-  attr_accessor :stub_token
-
-  ##
   # Accessor for URLs the stub accessed
 
   attr_accessor :stub_urls
 
-  ##
-  # Sets the authsub token to +token+, but does no HTTP requests
-
-  def authsub_token=(token)
-    @stub_token = token
-    auth_handler = Object.new
-    auth_handler.instance_variable_set :@revoked, nil
-    auth_handler.instance_variable_set :@upgraded, nil
-    auth_handler.instance_variable_set :@token, token
-    def auth_handler.revoke() @revoked = true end
-    def auth_handler.revoked?() @revoked end
-    def auth_handler.upgrade() @upgraded = true end
-    def auth_handler.upgraded?() @upgraded end
-    def auth_handler.token()
-      [@token,
-       (@revoked ? 'revoked' : nil),
-       (@upgraded ? 'upgraded' : nil)].compact.join '-'
-    end
-    self.auth_handler = auth_handler
-  end
+  alias old_request request
 
   ##
-  # Fetches +url+, records in in stub_urls, and returns data if there's still
+  # Fetches +url+, records in stub_urls, and returns data if there's still
   # data in stub_data, or raises an exception
 
-  def get(url)
-    @stub_urls << url
+  def request(url)
+    @stub_urls << url.to_s
     raise 'stub data empty' if @stub_data.empty?
 
     data = @stub_data.shift
 
     return data.call if Proc === data
 
-    res = Object.new
+    res = Net::HTTPOK.new nil, '200', 'OK'
     def res.body() @data end
     res.instance_variable_set :@data, data
     res

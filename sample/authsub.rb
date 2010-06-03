@@ -48,7 +48,7 @@ webrick.mount_proc '/' do |req, res|
         res.body << "<li>#{contact.title} - #{contact.primary_email}\n"
       end
 
-      res.body << "<\ul>\n"
+      res.body << "</ul>\n"
     rescue => e
       res.body << <<-BODY
 <h1>error</h1>
