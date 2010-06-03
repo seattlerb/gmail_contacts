@@ -4,7 +4,7 @@
 
 == DESCRIPTION:
 
-Simple Gmail contacts extraction using GData.
+Simple Gmail contact extraction.
 
 gmail_contacts development was sponsored by AT&T Interactive.
 
